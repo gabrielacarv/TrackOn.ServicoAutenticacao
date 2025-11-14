@@ -97,11 +97,9 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
+
 // --- USAR CORS ---
 app.UseCors(corsConfig.PolicyName);
 app.UseHttpsRedirection();
