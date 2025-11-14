@@ -1,10 +1,11 @@
 ﻿using TrackOn.ServicoAutenticacao.API.Entities.DTOs;
+using TrackOn.ServicoAutenticacao.API.Services.Modelos;
 
 namespace TrackOn.ServicoAutenticacao.API.Services.Interfaces
 {
     public interface IServicoAutenticacao
     {
-        Task<string> Autenticar(string email, string senha);
-        Task CriarUsuario(UsuarioDTO usuario);
+        Task<ResultadoAutenticacao> AutenticarAsync(AutenticacaoRequest request);
+        Task<ResultadoOperacao> CriarUsuarioAsync(RegistrarUsuarioRequest request);
     }
 }

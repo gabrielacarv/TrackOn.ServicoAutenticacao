@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TrackOn.ServicoAutenticacao.API.Entities.DTOs;
 using TrackOn.ServicoAutenticacao.API.Services.Interfaces;
+using TrackOn.ServicoAutenticacao.API.Services.Modelos;
 
 namespace TrackOn.ServicoAutenticacao.API.Controllers
 {
@@ -16,31 +17,47 @@ namespace TrackOn.ServicoAutenticacao.API.Controllers
         }
 
         [HttpPost("autenticar")]
-        public async Task<IActionResult> Login([FromBody] AutenticacaoDTO loginDTO)
+        [ProducesResponseType(typeof(TokenResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<TokenResponse>> Login([FromBody] AutenticacaoRequest loginRequest)
         {
-            var token = await _servicoAutenticacao.Autenticar(loginDTO.Email, loginDTO.Senha);
+            var resultado = await _servicoAutenticacao.AutenticarAsync(loginRequest);
 
-            if (token == null)
+            if (!resultado.Sucesso)
             {
-                return Unauthorized("Invalid credentials");
+                var mensagemErro = resultado.Mensagem ?? "Não foi possível autenticar o usuário.";
+                return resultado.MotivoFalha switch
+                {
+                    MotivoFalhaAutenticacao.CredenciaisInvalidas => Unauthorized(new ErrorResponse("credenciais_invalidas", mensagemErro)),
+                    MotivoFalhaAutenticacao.DadosInvalidos => BadRequest(new ErrorResponse("dados_invalidos", mensagemErro)),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse("erro_autenticacao", mensagemErro))
+                };
             }
 
-            return Ok(new { Token = token });
+            return Ok(new TokenResponse(resultado.Token!));
         }
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> Registrar([FromBody] UsuarioDTO usuarioDTO)
-
+        [ProducesResponseType(typeof(UsuarioRegistradoResponse), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<UsuarioRegistradoResponse>> Registrar([FromBody] RegistrarUsuarioRequest request)
         {
-            try
+            var resultado = await _servicoAutenticacao.CriarUsuarioAsync(request);
+
+            if (!resultado.Sucesso)
             {
-                await _servicoAutenticacao.CriarUsuario(usuarioDTO);
-                return Ok("Usuário registrado com sucesso");
+                var mensagemErro = resultado.Mensagem ?? "Não foi possível registrar o usuário.";
+                return resultado.MotivoFalha switch
+                {
+                    MotivoFalhaOperacao.DadosInvalidos => BadRequest(new ErrorResponse("dados_invalidos", mensagemErro)),
+                    MotivoFalhaOperacao.Conflito => Conflict(new ErrorResponse("usuario_existente", mensagemErro)),
+                    _ => StatusCode(StatusCodes.Status500InternalServerError, new ErrorResponse("erro_registro", mensagemErro))
+                };
             }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var response = new UsuarioRegistradoResponse(request.Email, request.Nome);
+            return Created(string.Empty, response);
         }
     }
 }
