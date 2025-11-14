@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Npgsql;
 using Microsoft.Data.SqlClient;
 using TrackOn.ServicoAutenticacao.API.Infra.Repository.Interfaces;
 using TrackOn.ServicoAutenticacao.API.Entities;
@@ -7,11 +8,11 @@ namespace TrackOn.ServicoAutenticacao.API.Infra.Repository
 {
     public class RepositorioUsuario : IRepositorioUsuario
     {
-        private const string ConsultaUsuarioPorEmail = @"SELECT Id, Email, HashSenha, Nome, CriadoEm, Ativo
-                                                         FROM Clientes
+        private const string ConsultaUsuarioPorEmail = @"SELECT Id, Email, HashSenha, Nome, Criado_Em, Ativo
+                                                         FROM Cliente
                                                          WHERE Email = @Email";
 
-        private const string ComandoInserirUsuario = @"INSERT INTO Clientes (Email, HashSenha, Nome, CriadoEm, Ativo)
+        private const string ComandoInserirUsuario = @"INSERT INTO Cliente (Email, HashSenha, Nome, Criado_Em, Ativo)
                                                        VALUES (@Email, @HashSenha, @Nome, @CriadoEm, @Ativo)";
 
         private readonly string _stringConexao;
@@ -26,7 +27,7 @@ namespace TrackOn.ServicoAutenticacao.API.Infra.Repository
         public async Task<Usuario?> ObterUsuarioPorEmailAsync(string email)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(email);
-            await using var conexao = new SqlConnection(_stringConexao);
+            await using var conexao = new NpgsqlConnection(_stringConexao);
             return await conexao.QueryFirstOrDefaultAsync<Usuario>(ConsultaUsuarioPorEmail, new { Email = email });
         }
 
@@ -34,14 +35,14 @@ namespace TrackOn.ServicoAutenticacao.API.Infra.Repository
         {
             ArgumentNullException.ThrowIfNull(usuario);
 
-            await using var conexao = new SqlConnection(_stringConexao);
+            await using var conexao = new NpgsqlConnection(_stringConexao);
             await conexao.ExecuteAsync(ComandoInserirUsuario, new
             {
                 usuario.Email,
                 usuario.HashSenha,
                 usuario.Nome,
                 usuario.CriadoEm,
-                Ativo = usuario.Ativo ? 1 : 0
+                Ativo = usuario.Ativo ? true : false
             });
         }
 
