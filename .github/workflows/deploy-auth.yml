@@ -9,18 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup .NET
+      - name: ⚙ Install .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: 8.0.x
 
-      - name: Publish release
+      - name: 🛠 Publish release build
         run: dotnet publish -c Release -o publish/
 
-      - name: Copy to EC2
+      - name: 📤 Upload files to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -29,10 +29,10 @@ jobs:
           source: "publish/*"
           target: "/var/www/trackon-auth"
 
-      - name: Restart service
+      - name: 🔁 Restart Auth service on EC2
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.E2_HOST }}
+          host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
